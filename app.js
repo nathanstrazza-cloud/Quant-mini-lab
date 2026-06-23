@@ -3,6 +3,10 @@
 // Quant Mini Lab keeps every calculation in this file so beginners can follow the full flow.
 const DEFAULT_SHORT_WINDOW = 20;
 const DEFAULT_LONG_WINDOW = 50;
+const VALIDATION_SHORT_WINDOW = 2;
+const VALIDATION_LONG_WINDOW = 3;
+const VALIDATION_STARTING_VALUE = 100;
+const VALIDATION_PRICES = [100, 110, 105, 120, 130];
 
 const elements = {
   shortWindow: document.querySelector("#shortWindow"),
@@ -10,21 +14,33 @@ const elements = {
   csvFile: document.querySelector("#csvFile"),
   runButton: document.querySelector("#runButton"),
   resetButton: document.querySelector("#resetButton"),
+  validationButton: document.querySelector("#validationButton"),
   strategyReturn: document.querySelector("#strategyReturn"),
   buyHoldReturn: document.querySelector("#buyHoldReturn"),
+  returnDifference: document.querySelector("#returnDifference"),
   maxDrawdown: document.querySelector("#maxDrawdown"),
   tradeCount: document.querySelector("#tradeCount"),
   exposure: document.querySelector("#exposure"),
+  bestDailyReturn: document.querySelector("#bestDailyReturn"),
+  worstDailyReturn: document.querySelector("#worstDailyReturn"),
   chart: document.querySelector("#equityChart"),
   latestSignal: document.querySelector("#latestSignal"),
   latestDate: document.querySelector("#latestDate"),
   dataSummary: document.querySelector("#dataSummary"),
+  interpretationText: document.querySelector("#interpretationText"),
   installStatus: document.querySelector("#installStatus"),
-  settingsError: document.querySelector("#settingsError")
+  settingsError: document.querySelector("#settingsError"),
+  debugPanel: document.querySelector("#debugPanel"),
+  debugFinalStrategyValue: document.querySelector("#debugFinalStrategyValue"),
+  debugFinalBuyHoldValue: document.querySelector("#debugFinalBuyHoldValue"),
+  debugTotalReturn: document.querySelector("#debugTotalReturn"),
+  debugCalculationNote: document.querySelector("#debugCalculationNote"),
+  debugDailyRows: document.querySelector("#debugDailyRows")
 };
 
 let priceData = buildEmbeddedSampleData();
 let latestBacktest = null;
+let debugMode = false;
 
 // Embedded data means the app works immediately, even with no internet and no uploaded file.
 function buildEmbeddedSampleData() {
@@ -55,6 +71,13 @@ function buildEmbeddedSampleData() {
   }
 
   return rows;
+}
+
+function buildValidationData() {
+  return VALIDATION_PRICES.map((close, index) => ({
+    date: `Day ${index + 1}`,
+    close
+  }));
 }
 
 function parseCsv(text) {
@@ -101,10 +124,22 @@ function calculateBacktest(data, shortWindow, longWindow) {
   const strategyEquity = [1];
   const buyHoldEquity = [1];
   const positions = [0];
+  const strategyDailyReturns = [];
+  const dailyRows = [{
+    date: data[0].date,
+    close: closes[0],
+    dailyReturn: null,
+    dailyReturnFormula: "Start",
+    signalExplanation: "Cash (start)",
+    strategyDailyReturn: 0,
+    strategyEquity: strategyEquity[0],
+    buyHoldEquity: buyHoldEquity[0]
+  }];
   let trades = 0;
   let investedDays = 0;
 
   for (let index = 1; index < data.length; index += 1) {
+    // Daily return measures the one-day price change: today's close divided by yesterday's close, minus 1.
     const dailyReturn = closes[index] / closes[index - 1] - 1;
 
     // Use yesterday's signal for today's return to avoid using future information.
@@ -115,13 +150,30 @@ function calculateBacktest(data, shortWindow, longWindow) {
 
     const previousPosition = positions[index - 1];
     if (invested !== previousPosition) {
+      // A trade is counted whenever the strategy changes between cash and invested.
       trades += 1;
     }
 
     investedDays += invested;
     positions.push(invested);
-    strategyEquity.push(strategyEquity[index - 1] * (1 + dailyReturn * invested));
+    // Strategy daily return is the market daily return multiplied by 1 when invested, or 0 when in cash.
+    const strategyDailyReturn = dailyReturn * invested;
+    strategyDailyReturns.push(strategyDailyReturn);
+    // Strategy value compounds only the strategy daily return, so cash days keep the value unchanged.
+    strategyEquity.push(strategyEquity[index - 1] * (1 + strategyDailyReturn));
+    // Buy and hold value compounds every market daily return because it stays invested the whole time.
     buyHoldEquity.push(buyHoldEquity[index - 1] * (1 + dailyReturn));
+
+    dailyRows.push({
+      date: data[index].date,
+      close: closes[index],
+      dailyReturn,
+      dailyReturnFormula: `${formatCompactNumber(closes[index])} / ${formatCompactNumber(closes[index - 1])} - 1`,
+      signalExplanation: describeSignal(invested, shortAverage[yesterday], longAverage[yesterday]),
+      strategyDailyReturn,
+      strategyEquity: strategyEquity[index],
+      buyHoldEquity: buyHoldEquity[index]
+    });
   }
 
   return {
@@ -131,12 +183,27 @@ function calculateBacktest(data, shortWindow, longWindow) {
     strategyEquity,
     buyHoldEquity,
     positions,
+    dailyRows,
+    // Total return is final value divided by starting value, minus 1.
     strategyReturn: strategyEquity.at(-1) - 1,
     buyHoldReturn: buyHoldEquity.at(-1) - 1,
+    returnDifference: strategyEquity.at(-1) - buyHoldEquity.at(-1),
     maxDrawdown: calculateMaxDrawdown(strategyEquity),
     trades,
-    exposure: investedDays / Math.max(1, data.length - 1)
+    // Exposure is the share of return-generating days where the strategy held the market.
+    exposure: investedDays / Math.max(1, data.length - 1),
+    bestDailyReturn: Math.max(...strategyDailyReturns),
+    worstDailyReturn: Math.min(...strategyDailyReturns)
   };
+}
+
+function describeSignal(invested, shortAverage, longAverage) {
+  if (shortAverage === null || longAverage === null) {
+    return "Cash (not enough averages)";
+  }
+
+  const comparison = `${formatCompactNumber(shortAverage)} ${invested ? ">" : "<="} ${formatCompactNumber(longAverage)}`;
+  return `${invested ? "Invested" : "Cash"} (${comparison})`;
 }
 
 function calculateMaxDrawdown(equityCurve) {
@@ -159,6 +226,47 @@ function formatPercent(value) {
   }).format(value);
 }
 
+function formatPercentagePoints(value) {
+  const formatted = new Intl.NumberFormat("en", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+    signDisplay: "exceptZero"
+  }).format(value * 100);
+
+  return `${formatted} pts`;
+}
+
+function formatAbsolutePercentagePoints(value) {
+  const formatted = new Intl.NumberFormat("en", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1
+  }).format(Math.abs(value) * 100);
+
+  return `${formatted} pts`;
+}
+
+function formatDebugPercent(value) {
+  return new Intl.NumberFormat("en", {
+    style: "percent",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value);
+}
+
+function formatCompactNumber(value) {
+  return new Intl.NumberFormat("en", {
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+    maximumFractionDigits: 2
+  }).format(value);
+}
+
+function formatValue(value) {
+  return new Intl.NumberFormat("en", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value);
+}
+
 function readWindowInputs() {
   return {
     shortWindow: Number(elements.shortWindow.value),
@@ -174,6 +282,12 @@ function setSettingsError(message) {
   elements.longWindow.setAttribute("aria-invalid", String(Boolean(message)));
 }
 
+function hideDebugPanel() {
+  debugMode = false;
+  elements.debugPanel.hidden = true;
+  elements.debugDailyRows.replaceChildren();
+}
+
 function validateWindows() {
   const { shortWindow, longWindow } = readWindowInputs();
 
@@ -187,8 +301,8 @@ function validateWindows() {
     return null;
   }
 
-  if (longWindow < 5 || longWindow > 200) {
-    setSettingsError("Long MA must be between 5 and 200 days.");
+  if (longWindow < 3 || longWindow > 200) {
+    setSettingsError("Long MA must be between 3 and 200 days.");
     return null;
   }
 
@@ -209,7 +323,7 @@ function updateApp() {
 
   const { shortWindow, longWindow } = windows;
 
-  if (priceData.length <= longWindow + 2) {
+  if (priceData.length <= longWindow) {
     elements.dataSummary.textContent = "Please use more rows than the long moving average window.";
     return;
   }
@@ -218,16 +332,72 @@ function updateApp() {
   latestBacktest = result;
   elements.strategyReturn.textContent = formatPercent(result.strategyReturn);
   elements.buyHoldReturn.textContent = formatPercent(result.buyHoldReturn);
+  elements.returnDifference.textContent = formatPercentagePoints(result.returnDifference);
   elements.maxDrawdown.textContent = formatPercent(result.maxDrawdown);
   elements.tradeCount.textContent = String(result.trades);
   elements.exposure.textContent = formatPercent(result.exposure);
+  elements.bestDailyReturn.textContent = formatPercent(result.bestDailyReturn);
+  elements.worstDailyReturn.textContent = formatPercent(result.worstDailyReturn);
 
   const latestPosition = result.positions.at(-1);
   elements.latestSignal.textContent = latestPosition ? "Invested" : "In cash";
   elements.latestDate.textContent = result.dates.at(-1);
   elements.dataSummary.textContent = `${priceData.length} rows loaded. Short MA: ${shortWindow} days. Long MA: ${longWindow} days.`;
+  elements.interpretationText.textContent = buildInterpretation(result);
 
   drawChart(result);
+  if (debugMode) {
+    renderDebugPanel(result);
+  }
+}
+
+function buildInterpretation(result) {
+  const comparison = result.returnDifference >= 0 ? "beat" : "trailed";
+  const difference = formatAbsolutePercentagePoints(result.returnDifference);
+  const drawdown = formatPercent(Math.abs(result.maxDrawdown));
+  const exposure = formatPercent(result.exposure);
+  const bestDay = formatPercent(result.bestDailyReturn);
+  const worstDay = formatPercent(result.worstDailyReturn);
+
+  return `The strategy ${comparison} Buy & Hold by ${difference}. It was invested ${exposure} of the time, so it spent the rest in cash. Its biggest fall from a previous high was ${drawdown}. Its best one-day strategy return was ${bestDay}, and its worst one-day strategy return was ${worstDay}.`;
+}
+
+function renderDebugPanel(result) {
+  // The equity curves start at 1, so multiply by 100 to show values from a 100 starting balance.
+  const finalStrategyValue = result.strategyEquity.at(-1) * VALIDATION_STARTING_VALUE;
+  const finalBuyHoldValue = result.buyHoldEquity.at(-1) * VALIDATION_STARTING_VALUE;
+
+  elements.debugPanel.hidden = false;
+  elements.debugFinalStrategyValue.textContent = formatValue(finalStrategyValue);
+  elements.debugFinalBuyHoldValue.textContent = formatValue(finalBuyHoldValue);
+  // Total return is shown for the strategy because it is the debug mode's primary result.
+  elements.debugTotalReturn.textContent = formatDebugPercent(result.strategyReturn);
+  elements.debugCalculationNote.textContent =
+    `Start value is ${VALIDATION_STARTING_VALUE}. Daily return = today's price / yesterday's price - 1. Strategy value changes only when yesterday's 2-day average is above yesterday's 3-day average.`;
+
+  const rows = result.dailyRows.map((row) => {
+    const tableRow = document.createElement("tr");
+    // Each row shows the raw daily-return formula, the signal used, and the two compounded values.
+    const cells = [
+      row.date,
+      formatValue(row.close),
+      row.dailyReturn === null ? "Start" : `${row.dailyReturnFormula} = ${formatDebugPercent(row.dailyReturn)}`,
+      row.signalExplanation,
+      formatDebugPercent(row.strategyDailyReturn),
+      formatValue(row.strategyEquity * VALIDATION_STARTING_VALUE),
+      formatValue(row.buyHoldEquity * VALIDATION_STARTING_VALUE)
+    ];
+
+    cells.forEach((cell) => {
+      const tableCell = document.createElement("td");
+      tableCell.textContent = cell;
+      tableRow.append(tableCell);
+    });
+
+    return tableRow;
+  });
+
+  elements.debugDailyRows.replaceChildren(...rows);
 }
 
 function drawChart(result) {
@@ -332,14 +502,25 @@ async function handleCsvUpload(event) {
     }
 
     priceData = parsedRows;
+    hideDebugPanel();
     updateApp();
   } catch (error) {
     elements.dataSummary.textContent = error.message;
   }
 }
 
+function loadValidationDataset() {
+  priceData = buildValidationData();
+  debugMode = true;
+  elements.shortWindow.value = VALIDATION_SHORT_WINDOW;
+  elements.longWindow.value = VALIDATION_LONG_WINDOW;
+  elements.csvFile.value = "";
+  updateApp();
+}
+
 function resetApp() {
   priceData = buildEmbeddedSampleData();
+  hideDebugPanel();
   elements.shortWindow.value = DEFAULT_SHORT_WINDOW;
   elements.longWindow.value = DEFAULT_LONG_WINDOW;
   elements.csvFile.value = "";
@@ -368,6 +549,7 @@ elements.longWindow.addEventListener("blur", updateApp);
 elements.csvFile.addEventListener("change", handleCsvUpload);
 elements.runButton.addEventListener("click", updateApp);
 elements.resetButton.addEventListener("click", resetApp);
+elements.validationButton.addEventListener("click", loadValidationDataset);
 window.addEventListener("resize", () => {
   if (latestBacktest) {
     drawChart(latestBacktest);

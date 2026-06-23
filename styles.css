@@ -70,7 +70,14 @@ h2 {
 main {
   display: grid;
   gap: 1rem;
-  width: min(100%, 1040px);
+  grid-template-areas:
+    "controls"
+    "metrics"
+    "interpretation"
+    "chart"
+    "details"
+    "debug";
+  width: min(100%, 1180px);
   margin: 0 auto;
   padding: 1rem 1rem calc(1.5rem + env(safe-area-inset-bottom));
 }
@@ -97,6 +104,30 @@ main {
 
 .panel {
   padding: 1rem;
+}
+
+.controls-panel {
+  grid-area: controls;
+}
+
+.metric-grid {
+  grid-area: metrics;
+}
+
+.interpretation-panel {
+  grid-area: interpretation;
+}
+
+.chart-panel {
+  grid-area: chart;
+}
+
+.details-panel {
+  grid-area: details;
+}
+
+.debug-panel {
+  grid-area: debug;
 }
 
 .section-heading {
@@ -129,6 +160,18 @@ main {
   font-weight: 800;
 }
 
+.secondary-button {
+  width: 100%;
+  min-height: 2.8rem;
+  margin-top: 0.6rem;
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  padding: 0 1rem;
+  font-weight: 800;
+}
+
 .control-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -143,7 +186,7 @@ main {
 
 .number-control span,
 .file-control span,
-.metric-card span {
+.metric-heading > span:first-child {
   color: var(--muted);
   font-size: 0.82rem;
   font-weight: 800;
@@ -187,15 +230,74 @@ small {
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(9.25rem, 1fr));
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .metric-card {
+  position: relative;
   display: grid;
-  gap: 0.15rem;
+  gap: 0.25rem;
   min-height: 6.25rem;
   padding: 0.9rem;
+  align-content: start;
+}
+
+.metric-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.metric-info {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: #f7faf6;
+  color: var(--primary);
+  padding: 0;
+  font-size: 0.75rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.metric-info:focus-visible {
+  outline: 3px solid rgba(217, 132, 59, 0.35);
+  outline-offset: 2px;
+}
+
+.metric-tooltip {
+  position: fixed;
+  right: 1rem;
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  left: 1rem;
+  z-index: 5;
+  border: 1px solid rgba(22, 56, 50, 0.16);
+  border-radius: 8px;
+  background: #17211e;
+  color: #ffffff;
+  box-shadow: 0 18px 38px rgba(23, 33, 30, 0.22);
+  padding: 0.7rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0.35rem);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.metric-info:hover + .metric-tooltip,
+.metric-info:focus + .metric-tooltip,
+.metric-info:focus-visible + .metric-tooltip {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .metric-card strong {
@@ -208,8 +310,15 @@ small {
   font-size: 0.75rem;
 }
 
+.interpretation-panel p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
 .chart-panel {
   overflow: hidden;
+  min-width: 0;
 }
 
 .legend {
@@ -246,7 +355,7 @@ small {
 .chart-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 1.35;
+  aspect-ratio: 4 / 3;
   min-height: 280px;
 }
 
@@ -279,9 +388,89 @@ canvas {
   color: var(--muted);
 }
 
+.debug-panel {
+  overflow: hidden;
+}
+
+.debug-eyebrow {
+  color: var(--accent);
+}
+
+.debug-summary {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+}
+
+.debug-summary div {
+  display: grid;
+  gap: 0.1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fbfdfb;
+  padding: 0.75rem;
+}
+
+.debug-summary span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.debug-summary strong {
+  color: var(--primary);
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.debug-note {
+  margin-bottom: 0.8rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.debug-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.debug-table th,
+.debug-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.65rem 0.7rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.debug-table th {
+  background: #f7faf6;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.debug-table td {
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.debug-table tr:last-child td {
+  border-bottom: 0;
+}
+
 @media (min-width: 760px) {
   .app-header {
-    padding: 1.5rem 2rem;
+    padding: 1.5rem max(2rem, calc((100vw - 1180px) / 2 + 2rem));
   }
 
   h1 {
@@ -289,23 +478,18 @@ canvas {
   }
 
   main {
-    grid-template-columns: 340px 1fr;
+    grid-template-columns: minmax(16rem, 19rem) minmax(0, 1fr);
+    grid-template-areas:
+      "controls metrics"
+      "controls interpretation"
+      "details chart"
+      "debug debug";
     align-items: start;
     padding: 1.5rem 2rem 2rem;
   }
 
-  .controls-panel,
-  .details-panel {
-    grid-column: 1;
-  }
-
-  .metric-grid,
-  .chart-panel {
-    grid-column: 2;
-  }
-
-  .metric-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+  .debug-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .metric-card {
@@ -313,6 +497,41 @@ canvas {
   }
 
   .metric-card strong {
-    font-size: 1.85rem;
+    font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  }
+
+  .metric-tooltip {
+    position: absolute;
+    top: 2.55rem;
+    right: 0.75rem;
+    bottom: auto;
+    left: auto;
+    width: min(17rem, calc(100vw - 2rem));
+    transform: translateY(-0.25rem);
+  }
+
+  .chart-wrap {
+    aspect-ratio: 16 / 10;
+  }
+}
+
+@media (min-width: 1080px) {
+  main {
+    grid-template-columns: minmax(17rem, 20rem) minmax(0, 1fr);
+    grid-template-areas:
+      "controls metrics"
+      "controls chart"
+      "details chart"
+      "interpretation chart"
+      "debug debug";
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .chart-wrap {
+    aspect-ratio: 16 / 9;
+    min-height: 430px;
   }
 }

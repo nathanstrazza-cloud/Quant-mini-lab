@@ -37,7 +37,7 @@
 
           <label class="number-control">
             <span>Long average</span>
-            <input id="longWindow" type="number" min="5" max="200" step="1" value="50" inputmode="numeric" aria-describedby="settingsError">
+            <input id="longWindow" type="number" min="3" max="200" step="1" value="50" inputmode="numeric" aria-describedby="settingsError">
             <small>Trading days</small>
           </label>
         </div>
@@ -45,6 +45,7 @@
         <p class="form-error" id="settingsError" role="alert" aria-live="polite"></p>
 
         <button class="primary-button" id="runButton" type="button">Run Backtest</button>
+        <button class="secondary-button" id="validationButton" type="button">Load Validation Dataset</button>
 
         <label class="file-control">
           <span>Use your own CSV</span>
@@ -55,30 +56,82 @@
 
       <section class="metric-grid" aria-label="Backtest results">
         <article class="metric-card">
-          <span>Total return</span>
+          <div class="metric-heading">
+            <span>Strategy return</span>
+            <button class="metric-info" type="button" aria-label="Explain Strategy return" aria-describedby="tooltip-strategy-return">?</button>
+            <span class="metric-tooltip" id="tooltip-strategy-return" role="tooltip">Total gain or loss from following the moving average strategy over the loaded data.</span>
+          </div>
           <strong id="strategyReturn">0.0%</strong>
-          <small>Strategy</small>
+          <small>Total return</small>
         </article>
         <article class="metric-card">
-          <span>Buy &amp; Hold</span>
+          <div class="metric-heading">
+            <span>Buy &amp; Hold return</span>
+            <button class="metric-info" type="button" aria-label="Explain Buy and Hold return" aria-describedby="tooltip-buy-hold-return">?</button>
+            <span class="metric-tooltip" id="tooltip-buy-hold-return" role="tooltip">Total gain or loss from buying at the start and staying invested until the end.</span>
+          </div>
           <strong id="buyHoldReturn">0.0%</strong>
           <small>Total return</small>
         </article>
         <article class="metric-card">
-          <span>Max drawdown</span>
+          <div class="metric-heading">
+            <span>Difference</span>
+            <button class="metric-info" type="button" aria-label="Explain Difference" aria-describedby="tooltip-return-difference">?</button>
+            <span class="metric-tooltip" id="tooltip-return-difference" role="tooltip">Strategy return minus Buy &amp; Hold return, shown in percentage points.</span>
+          </div>
+          <strong id="returnDifference">0.0 pts</strong>
+          <small>Strategy minus Buy &amp; Hold</small>
+        </article>
+        <article class="metric-card">
+          <div class="metric-heading">
+            <span>Max drawdown</span>
+            <button class="metric-info" type="button" aria-label="Explain Max drawdown" aria-describedby="tooltip-max-drawdown">?</button>
+            <span class="metric-tooltip" id="tooltip-max-drawdown" role="tooltip">Largest fall from a previous strategy high before the strategy recovered.</span>
+          </div>
           <strong id="maxDrawdown">0.0%</strong>
           <small>Strategy</small>
         </article>
         <article class="metric-card">
-          <span>Trades</span>
+          <div class="metric-heading">
+            <span>Trades</span>
+            <button class="metric-info" type="button" aria-label="Explain Trades" aria-describedby="tooltip-trades">?</button>
+            <span class="metric-tooltip" id="tooltip-trades" role="tooltip">Number of times the strategy switched between cash and being invested.</span>
+          </div>
           <strong id="tradeCount">0</strong>
           <small>Entries and exits</small>
         </article>
         <article class="metric-card">
-          <span>Exposure</span>
+          <div class="metric-heading">
+            <span>Exposure</span>
+            <button class="metric-info" type="button" aria-label="Explain Exposure" aria-describedby="tooltip-exposure">?</button>
+            <span class="metric-tooltip" id="tooltip-exposure" role="tooltip">Share of return-generating days when the strategy held the market instead of cash.</span>
+          </div>
           <strong id="exposure">0.0%</strong>
           <small>Time invested</small>
         </article>
+        <article class="metric-card">
+          <div class="metric-heading">
+            <span>Best daily return</span>
+            <button class="metric-info" type="button" aria-label="Explain Best daily return" aria-describedby="tooltip-best-daily-return">?</button>
+            <span class="metric-tooltip" id="tooltip-best-daily-return" role="tooltip">The strongest one-day return produced by the strategy.</span>
+          </div>
+          <strong id="bestDailyReturn">0.0%</strong>
+          <small>Strategy</small>
+        </article>
+        <article class="metric-card">
+          <div class="metric-heading">
+            <span>Worst daily return</span>
+            <button class="metric-info" type="button" aria-label="Explain Worst daily return" aria-describedby="tooltip-worst-daily-return">?</button>
+            <span class="metric-tooltip" id="tooltip-worst-daily-return" role="tooltip">The weakest one-day return produced by the strategy.</span>
+          </div>
+          <strong id="worstDailyReturn">0.0%</strong>
+          <small>Strategy</small>
+        </article>
+      </section>
+
+      <section class="panel interpretation-panel" aria-labelledby="interpretationTitle">
+        <h2 id="interpretationTitle">Simple Interpretation</h2>
+        <p id="interpretationText">Run a backtest to see what the results mean.</p>
       </section>
 
       <section class="panel chart-panel" aria-labelledby="chartTitle">
@@ -101,6 +154,49 @@
           <span id="latestDate">--</span>
         </div>
         <p id="dataSummary">The app is loading embedded sample prices.</p>
+      </section>
+
+      <section class="panel debug-panel" id="debugPanel" aria-labelledby="debugTitle" hidden>
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow debug-eyebrow">Debug mode</p>
+            <h2 id="debugTitle">Validation Dataset</h2>
+          </div>
+        </div>
+
+        <div class="debug-summary" aria-label="Validation results">
+          <div>
+            <span>Final strategy value</span>
+            <strong id="debugFinalStrategyValue">--</strong>
+          </div>
+          <div>
+            <span>Final buy and hold value</span>
+            <strong id="debugFinalBuyHoldValue">--</strong>
+          </div>
+          <div>
+            <span>Total return</span>
+            <strong id="debugTotalReturn">--</strong>
+          </div>
+        </div>
+
+        <p class="debug-note" id="debugCalculationNote"></p>
+
+        <div class="table-wrap">
+          <table class="debug-table">
+            <thead>
+              <tr>
+                <th>Day</th>
+                <th>Price</th>
+                <th>Daily return</th>
+                <th>Signal used</th>
+                <th>Strategy daily return</th>
+                <th>Strategy value</th>
+                <th>Buy and hold value</th>
+              </tr>
+            </thead>
+            <tbody id="debugDailyRows"></tbody>
+          </table>
+        </div>
       </section>
     </main>
   </body>
