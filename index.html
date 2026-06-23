@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#163832">
+    <meta name="description" content="A mobile-first PWA for testing a moving average crossover strategy.">
+    <title>Quant Mini Lab</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Progressive Web App</p>
+        <h1>Quant Mini Lab</h1>
+      </div>
+      <span class="status-pill" id="installStatus">Offline ready</span>
+    </header>
+
+    <main>
+      <section class="panel controls-panel" aria-labelledby="settingsTitle">
+        <div class="section-heading">
+          <h2 id="settingsTitle">Strategy Settings</h2>
+          <button class="ghost-button" id="resetButton" type="button">Reset</button>
+        </div>
+
+        <div class="control-grid">
+          <label class="number-control">
+            <span>Short average</span>
+            <input id="shortWindow" type="number" min="2" max="100" step="1" value="20" inputmode="numeric" aria-describedby="settingsError">
+            <small>Trading days</small>
+          </label>
+
+          <label class="number-control">
+            <span>Long average</span>
+            <input id="longWindow" type="number" min="5" max="200" step="1" value="50" inputmode="numeric" aria-describedby="settingsError">
+            <small>Trading days</small>
+          </label>
+        </div>
+
+        <p class="form-error" id="settingsError" role="alert" aria-live="polite"></p>
+
+        <button class="primary-button" id="runButton" type="button">Run Backtest</button>
+
+        <label class="file-control">
+          <span>Use your own CSV</span>
+          <input id="csvFile" type="file" accept=".csv,text/csv">
+          <small>Expected columns: Date, Close</small>
+        </label>
+      </section>
+
+      <section class="metric-grid" aria-label="Backtest results">
+        <article class="metric-card">
+          <span>Total return</span>
+          <strong id="strategyReturn">0.0%</strong>
+          <small>Strategy</small>
+        </article>
+        <article class="metric-card">
+          <span>Buy &amp; Hold</span>
+          <strong id="buyHoldReturn">0.0%</strong>
+          <small>Total return</small>
+        </article>
+        <article class="metric-card">
+          <span>Max drawdown</span>
+          <strong id="maxDrawdown">0.0%</strong>
+          <small>Strategy</small>
+        </article>
+        <article class="metric-card">
+          <span>Trades</span>
+          <strong id="tradeCount">0</strong>
+          <small>Entries and exits</small>
+        </article>
+        <article class="metric-card">
+          <span>Exposure</span>
+          <strong id="exposure">0.0%</strong>
+          <small>Time invested</small>
+        </article>
+      </section>
+
+      <section class="panel chart-panel" aria-labelledby="chartTitle">
+        <div class="section-heading">
+          <h2 id="chartTitle">Equity Curve</h2>
+          <div class="legend" aria-label="Chart legend">
+            <span><i class="strategy-key"></i> Strategy</span>
+            <span><i class="buyhold-key"></i> Buy &amp; Hold</span>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="equityChart" width="720" height="420" aria-label="Strategy and Buy and Hold equity curves"></canvas>
+        </div>
+      </section>
+
+      <section class="panel details-panel" aria-labelledby="detailsTitle">
+        <h2 id="detailsTitle">Latest Signal</h2>
+        <div class="signal-row">
+          <strong id="latestSignal">Waiting for data</strong>
+          <span id="latestDate">--</span>
+        </div>
+        <p id="dataSummary">The app is loading embedded sample prices.</p>
+      </section>
+    </main>
+  </body>
+</html>

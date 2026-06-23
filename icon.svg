@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Quant Mini Lab icon</title>
+  <desc id="desc">A simple line chart inside a dark green rounded square.</desc>
+  <rect width="512" height="512" rx="96" fill="#163832"/>
+  <path d="M104 358H408" stroke="#dce5dc" stroke-width="28" stroke-linecap="round"/>
+  <path d="M104 340L176 266L240 300L322 168L408 214" fill="none" stroke="#f0b36a" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M104 276L176 312L244 230L318 254L408 126" fill="none" stroke="#73d3b7" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

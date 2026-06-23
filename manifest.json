@@ -1,0 +1,18 @@
+{
+  "name": "Quant Mini Lab",
+  "short_name": "Quant Lab",
+  "description": "Backtest a simple moving average crossover strategy on your phone.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f7f2",
+  "theme_color": "#163832",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
