@@ -25,7 +25,8 @@ It then:
 - `app.js` contains the sample data, CSV parsing, backtest logic, metrics, and chart drawing.
 - `manifest.json` makes the app installable as a PWA.
 - `service-worker.js` caches the app files for offline use.
-- `icon.svg` is the app icon.
+- `icon.svg` is the source app icon.
+- `icon-192.png`, `icon-512.png`, and `apple-touch-icon.png` are install icons for PWA and iPhone home-screen support.
 
 ## Run Locally
 

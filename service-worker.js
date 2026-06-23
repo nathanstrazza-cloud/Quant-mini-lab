@@ -1,14 +1,17 @@
 "use strict";
 
 // This service worker stores the app shell so the PWA can open without a network.
-const CACHE_NAME = "quant-mini-lab-v3";
+const CACHE_NAME = "quant-mini-lab-v4";
 const APP_FILES = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
   "./manifest.json",
-  "./icon.svg"
+  "./icon.svg",
+  "./icon-192.png",
+  "./icon-512.png",
+  "./apple-touch-icon.png"
 ];
 
 self.addEventListener("install", (event) => {
@@ -31,6 +34,13 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") {
+    return;
+  }
+
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match("./index.html"))
+    );
     return;
   }
 
