@@ -35,12 +35,15 @@ const elements = {
   debugFinalBuyHoldValue: document.querySelector("#debugFinalBuyHoldValue"),
   debugTotalReturn: document.querySelector("#debugTotalReturn"),
   debugCalculationNote: document.querySelector("#debugCalculationNote"),
-  debugDailyRows: document.querySelector("#debugDailyRows")
+  debugDailyRows: document.querySelector("#debugDailyRows"),
+  historyPanel: document.querySelector("#historyPanel"),
+  historyRows: document.querySelector("#historyRows")
 };
 
 let priceData = buildEmbeddedSampleData();
 let latestBacktest = null;
 let debugMode = false;
+let strategyHistory = [];
 
 // Embedded data means the app works immediately, even with no internet and no uploaded file.
 function buildEmbeddedSampleData() {
@@ -318,14 +321,14 @@ function validateWindows() {
 function updateApp() {
   const windows = validateWindows();
   if (!windows) {
-    return;
+    return null;
   }
 
   const { shortWindow, longWindow } = windows;
 
   if (priceData.length <= longWindow) {
     elements.dataSummary.textContent = "Please use more rows than the long moving average window.";
-    return;
+    return null;
   }
 
   const result = calculateBacktest(priceData, shortWindow, longWindow);
@@ -349,6 +352,8 @@ function updateApp() {
   if (debugMode) {
     renderDebugPanel(result);
   }
+
+  return { result, windows };
 }
 
 function buildInterpretation(result) {
@@ -398,6 +403,97 @@ function renderDebugPanel(result) {
   });
 
   elements.debugDailyRows.replaceChildren(...rows);
+}
+
+function buildHistoryEntry(result, windows) {
+  return {
+    shortWindow: windows.shortWindow,
+    longWindow: windows.longWindow,
+    strategyReturn: result.strategyReturn,
+    buyHoldReturn: result.buyHoldReturn,
+    maxDrawdown: result.maxDrawdown,
+    trades: result.trades,
+    exposure: result.exposure,
+    returnDifference: result.returnDifference
+  };
+}
+
+function addCurrentResultToHistory() {
+  if (debugMode) {
+    return;
+  }
+
+  const current = updateApp();
+  if (!current) {
+    return;
+  }
+
+  strategyHistory = [
+    buildHistoryEntry(current.result, current.windows),
+    ...strategyHistory
+  ].slice(0, 5);
+  renderStrategyHistory();
+}
+
+function resetStrategyHistory() {
+  if (debugMode) {
+    return;
+  }
+
+  const current = updateApp();
+  strategyHistory = current ? [buildHistoryEntry(current.result, current.windows)] : [];
+  renderStrategyHistory();
+}
+
+function hideStrategyHistory() {
+  strategyHistory = [];
+  elements.historyPanel.hidden = true;
+  elements.historyRows.replaceChildren();
+}
+
+function renderStrategyHistory() {
+  if (strategyHistory.length === 0) {
+    elements.historyPanel.hidden = true;
+    elements.historyRows.replaceChildren();
+    return;
+  }
+
+  elements.historyPanel.hidden = false;
+  const differences = strategyHistory.map((entry) => entry.returnDifference);
+  const shouldHighlight = strategyHistory.length >= 3;
+  const bestDifference = Math.max(...differences);
+  const worstDifference = Math.min(...differences);
+
+  const rows = strategyHistory.map((entry) => {
+    const tableRow = document.createElement("tr");
+    const cells = [
+      entry.shortWindow,
+      entry.longWindow,
+      formatPercent(entry.strategyReturn),
+      formatPercent(entry.buyHoldReturn),
+      formatPercent(entry.maxDrawdown),
+      entry.trades,
+      formatPercent(entry.exposure)
+    ];
+
+    cells.forEach((cell) => {
+      const tableCell = document.createElement("td");
+      tableCell.textContent = String(cell);
+      tableRow.append(tableCell);
+    });
+
+    const differenceCell = document.createElement("td");
+    differenceCell.textContent = formatPercentagePoints(entry.returnDifference);
+    if (shouldHighlight && bestDifference !== worstDifference) {
+      differenceCell.classList.toggle("is-best-difference", entry.returnDifference === bestDifference);
+      differenceCell.classList.toggle("is-worst-difference", entry.returnDifference === worstDifference);
+    }
+    tableRow.append(differenceCell);
+
+    return tableRow;
+  });
+
+  elements.historyRows.replaceChildren(...rows);
 }
 
 function drawChart(result) {
@@ -503,7 +599,7 @@ async function handleCsvUpload(event) {
 
     priceData = parsedRows;
     hideDebugPanel();
-    updateApp();
+    resetStrategyHistory();
   } catch (error) {
     elements.dataSummary.textContent = error.message;
   }
@@ -512,6 +608,7 @@ async function handleCsvUpload(event) {
 function loadValidationDataset() {
   priceData = buildValidationData();
   debugMode = true;
+  hideStrategyHistory();
   elements.shortWindow.value = VALIDATION_SHORT_WINDOW;
   elements.longWindow.value = VALIDATION_LONG_WINDOW;
   elements.csvFile.value = "";
@@ -524,7 +621,7 @@ function resetApp() {
   elements.shortWindow.value = DEFAULT_SHORT_WINDOW;
   elements.longWindow.value = DEFAULT_LONG_WINDOW;
   elements.csvFile.value = "";
-  updateApp();
+  resetStrategyHistory();
 }
 
 function registerServiceWorker() {
@@ -547,7 +644,7 @@ elements.longWindow.addEventListener("input", () => setSettingsError(""));
 elements.shortWindow.addEventListener("blur", updateApp);
 elements.longWindow.addEventListener("blur", updateApp);
 elements.csvFile.addEventListener("change", handleCsvUpload);
-elements.runButton.addEventListener("click", updateApp);
+elements.runButton.addEventListener("click", addCurrentResultToHistory);
 elements.resetButton.addEventListener("click", resetApp);
 elements.validationButton.addEventListener("click", loadValidationDataset);
 window.addEventListener("resize", () => {
@@ -557,4 +654,4 @@ window.addEventListener("resize", () => {
 });
 
 registerServiceWorker();
-updateApp();
+resetStrategyHistory();

@@ -76,6 +76,7 @@ main {
     "interpretation"
     "chart"
     "details"
+    "history"
     "debug";
   width: min(100%, 1180px);
   margin: 0 auto;
@@ -124,6 +125,11 @@ main {
 
 .details-panel {
   grid-area: details;
+}
+
+.history-panel {
+  grid-area: history;
+  overflow: hidden;
 }
 
 .debug-panel {
@@ -443,6 +449,57 @@ canvas {
   font-size: 0.86rem;
 }
 
+.history-panel h2 {
+  margin-bottom: 0.85rem;
+}
+
+.history-table {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.history-table th,
+.history-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.65rem 0.7rem;
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.history-table th {
+  background: #f7faf6;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.history-table td {
+  color: var(--ink);
+}
+
+.history-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.history-table td.is-best-difference,
+.history-table td.is-worst-difference {
+  font-weight: 850;
+}
+
+.history-table td.is-best-difference {
+  background: #e0eee7;
+  color: #0b5f4e;
+}
+
+.history-table td.is-worst-difference {
+  background: #f7e2df;
+  color: #9d312c;
+}
+
 .debug-table th,
 .debug-table td {
   border-bottom: 1px solid var(--border);
@@ -483,6 +540,7 @@ canvas {
       "controls metrics"
       "controls interpretation"
       "details chart"
+      "history history"
       "debug debug";
     align-items: start;
     padding: 1.5rem 2rem 2rem;
@@ -523,6 +581,7 @@ canvas {
       "controls chart"
       "details chart"
       "interpretation chart"
+      ". history"
       "debug debug";
   }
 
