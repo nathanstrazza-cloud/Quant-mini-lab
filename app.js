@@ -410,10 +410,7 @@ function buildHistoryEntry(result, windows) {
     shortWindow: windows.shortWindow,
     longWindow: windows.longWindow,
     strategyReturn: result.strategyReturn,
-    buyHoldReturn: result.buyHoldReturn,
     maxDrawdown: result.maxDrawdown,
-    trades: result.trades,
-    exposure: result.exposure,
     returnDifference: result.returnDifference
   };
 }
@@ -470,10 +467,7 @@ function renderStrategyHistory() {
       entry.shortWindow,
       entry.longWindow,
       formatPercent(entry.strategyReturn),
-      formatPercent(entry.buyHoldReturn),
-      formatPercent(entry.maxDrawdown),
-      entry.trades,
-      formatPercent(entry.exposure)
+      formatPercent(entry.maxDrawdown)
     ];
 
     cells.forEach((cell) => {
