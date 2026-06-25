@@ -1,7 +1,7 @@
 "use strict";
 
 // This service worker stores the app shell so the PWA can open without a network.
-const CACHE_NAME = "quant-mini-lab-v7";
+const CACHE_NAME = "quant-mini-lab-v9";
 const APP_FILES = [
   "./",
   "./index.html",

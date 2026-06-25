@@ -358,13 +358,16 @@ function updateApp() {
 
 function buildInterpretation(result) {
   const comparison = result.returnDifference >= 0 ? "beat" : "trailed";
+  const meaning = result.returnDifference >= 0
+    ? "In this sample, the moving-average rule added value versus simply staying invested."
+    : "In this sample, simply staying invested did better than switching between cash and the market.";
   const difference = formatAbsolutePercentagePoints(result.returnDifference);
   const drawdown = formatPercent(Math.abs(result.maxDrawdown));
   const exposure = formatPercent(result.exposure);
   const bestDay = formatPercent(result.bestDailyReturn);
   const worstDay = formatPercent(result.worstDailyReturn);
 
-  return `The strategy ${comparison} Buy & Hold by ${difference}. It was invested ${exposure} of the time, so it spent the rest in cash. Its biggest fall from a previous high was ${drawdown}. Its best one-day strategy return was ${bestDay}, and its worst one-day strategy return was ${worstDay}.`;
+  return `The strategy ${comparison} Buy & Hold by ${difference}. ${meaning} It was invested ${exposure} of the time, so the remaining days were spent in cash. Its largest drop from a previous high was ${drawdown}, which is the main pain point to compare with the total return. Best strategy day: ${bestDay}. Worst strategy day: ${worstDay}.`;
 }
 
 function renderDebugPanel(result) {
@@ -464,19 +467,21 @@ function renderStrategyHistory() {
   const rows = strategyHistory.map((entry) => {
     const tableRow = document.createElement("tr");
     const cells = [
-      entry.shortWindow,
-      entry.longWindow,
-      formatPercent(entry.strategyReturn),
-      formatPercent(entry.maxDrawdown)
+      ["Short average", entry.shortWindow],
+      ["Long average", entry.longWindow],
+      ["Strategy return", formatPercent(entry.strategyReturn)],
+      ["Max drawdown", formatPercent(entry.maxDrawdown)]
     ];
 
-    cells.forEach((cell) => {
+    cells.forEach(([label, cell]) => {
       const tableCell = document.createElement("td");
+      tableCell.dataset.label = label;
       tableCell.textContent = String(cell);
       tableRow.append(tableCell);
     });
 
     const differenceCell = document.createElement("td");
+    differenceCell.dataset.label = "Difference";
     differenceCell.textContent = formatPercentagePoints(entry.returnDifference);
     if (shouldHighlight && bestDifference !== worstDifference) {
       differenceCell.classList.toggle("is-best-difference", entry.returnDifference === bestDifference);
@@ -503,21 +508,33 @@ function drawChart(result) {
 
   const width = bounds.width;
   const height = bounds.height;
-  const padding = { top: 18, right: 12, bottom: 34, left: 42 };
+  const isNarrow = width < 420;
+  const padding = {
+    top: 28,
+    right: isNarrow ? 14 : 124,
+    bottom: isNarrow ? 38 : 42,
+    left: isNarrow ? 46 : 56
+  };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
   const allValues = result.strategyEquity.concat(result.buyHoldEquity);
-  const minValue = Math.min(...allValues) * 0.98;
-  const maxValue = Math.max(...allValues) * 1.02;
+  const rawMin = Math.min(...allValues);
+  const rawMax = Math.max(...allValues);
+  const range = Math.max(0.04, rawMax - rawMin);
+  const minValue = Math.max(0, rawMin - range * 0.12);
+  const maxValue = rawMax + range * 0.12;
 
   context.clearRect(0, 0, width, height);
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, width, height);
 
   drawGrid(context, padding, chartWidth, chartHeight, minValue, maxValue);
+  drawStartingLine(context, padding, chartWidth, chartHeight, minValue, maxValue);
   drawLine(context, result.buyHoldEquity, "#c76f1f", padding, chartWidth, chartHeight, minValue, maxValue);
   drawLine(context, result.strategyEquity, "#0e7c66", padding, chartWidth, chartHeight, minValue, maxValue);
-  drawAxisLabels(context, result, padding, width, height, minValue, maxValue);
+  drawEndpointLabel(context, result.buyHoldEquity, "Buy & Hold", "#9b4f12", padding, chartWidth, chartHeight, minValue, maxValue, isNarrow);
+  drawEndpointLabel(context, result.strategyEquity, "Strategy", "#075f4c", padding, chartWidth, chartHeight, minValue, maxValue, isNarrow);
+  drawAxisLabels(context, result, padding, width, height);
 }
 
 function drawGrid(context, padding, chartWidth, chartHeight, minValue, maxValue) {
@@ -525,6 +542,7 @@ function drawGrid(context, padding, chartWidth, chartHeight, minValue, maxValue)
   context.fillStyle = "#66716c";
   context.lineWidth = 1;
   context.font = "12px system-ui, sans-serif";
+  context.textBaseline = "middle";
 
   for (let line = 0; line <= 4; line += 1) {
     const y = padding.top + chartHeight * (line / 4);
@@ -533,13 +551,31 @@ function drawGrid(context, padding, chartWidth, chartHeight, minValue, maxValue)
     context.moveTo(padding.left, y);
     context.lineTo(padding.left + chartWidth, y);
     context.stroke();
-    context.fillText(`${Math.round(value * 100)}%`, 4, y + 4);
+    context.fillText(`${formatChartValue(value)}x`, 4, y);
   }
+}
+
+function drawStartingLine(context, padding, chartWidth, chartHeight, minValue, maxValue) {
+  const startY = padding.top + chartHeight - ((1 - minValue) / (maxValue - minValue)) * chartHeight;
+
+  if (startY < padding.top || startY > padding.top + chartHeight) {
+    return;
+  }
+
+  context.save();
+  context.strokeStyle = "#b7c5bb";
+  context.lineWidth = 1;
+  context.setLineDash([4, 4]);
+  context.beginPath();
+  context.moveTo(padding.left, startY);
+  context.lineTo(padding.left + chartWidth, startY);
+  context.stroke();
+  context.restore();
 }
 
 function drawLine(context, values, color, padding, chartWidth, chartHeight, minValue, maxValue) {
   context.strokeStyle = color;
-  context.lineWidth = 3;
+  context.lineWidth = 3.5;
   context.lineJoin = "round";
   context.lineCap = "round";
   context.beginPath();
@@ -558,9 +594,28 @@ function drawLine(context, values, color, padding, chartWidth, chartHeight, minV
   context.stroke();
 }
 
-function drawAxisLabels(context, result, padding, width, height, minValue, maxValue) {
+function drawEndpointLabel(context, values, label, color, padding, chartWidth, chartHeight, minValue, maxValue, isNarrow) {
+  if (isNarrow) {
+    return;
+  }
+
+  const value = values.at(-1);
+  const labelText = `${label} ${formatChartValue(value)}x`;
+  context.font = "700 12px system-ui, sans-serif";
+  const labelWidth = context.measureText(labelText).width;
+  const x = padding.left + chartWidth + 8;
+  const rawY = padding.top + chartHeight - ((value - minValue) / (maxValue - minValue)) * chartHeight;
+  const y = Math.min(padding.top + chartHeight - 10, Math.max(padding.top + 10, rawY));
+
+  context.fillStyle = color;
+  context.textBaseline = "middle";
+  context.fillText(labelText, x - Math.max(0, labelWidth - padding.right + 16), y);
+}
+
+function drawAxisLabels(context, result, padding, width, height) {
   context.fillStyle = "#5b6762";
   context.font = "12px system-ui, sans-serif";
+  context.textBaseline = "alphabetic";
   context.fillText(result.dates[0], padding.left, height - 10);
 
   const lastDate = result.dates.at(-1);
@@ -571,10 +626,17 @@ function drawAxisLabels(context, result, padding, width, height, minValue, maxVa
   context.lineWidth = 1;
   context.strokeRect(padding.left, padding.top, width - padding.left - padding.right, height - padding.top - padding.bottom);
 
-  // These labels make it clear that equity starts at 100%, not at a dollar amount.
+  // These labels make it clear that equity starts at 1.00 times the starting value.
   context.fillStyle = "#17211e";
   context.font = "700 12px system-ui, sans-serif";
-  context.fillText("Equity", padding.left, 14);
+  context.fillText("Portfolio value", padding.left, 16);
+}
+
+function formatChartValue(value) {
+  return new Intl.NumberFormat("en", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value);
 }
 
 async function handleCsvUpload(event) {

@@ -23,7 +23,8 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  line-height: 1.5;
+  font-size: 16px;
+  line-height: 1.55;
 }
 
 button,
@@ -58,7 +59,7 @@ p {
 
 h1 {
   margin-bottom: 0;
-  font-size: 1.75rem;
+  font-size: 1.95rem;
   line-height: 1.1;
 }
 
@@ -80,7 +81,7 @@ main {
     "debug";
   width: min(100%, 1180px);
   margin: 0 auto;
-  padding: 1rem 1rem calc(1.5rem + env(safe-area-inset-bottom));
+  padding: 1rem 0.85rem calc(1.5rem + env(safe-area-inset-bottom));
 }
 
 main > * {
@@ -109,7 +110,7 @@ main > * {
 
 .panel {
   min-width: 0;
-  padding: 1rem;
+  padding: 1.05rem;
 }
 
 .controls-panel {
@@ -250,9 +251,9 @@ small {
   position: relative;
   display: grid;
   gap: 0.25rem;
-  min-height: 6.25rem;
+  min-height: 6.6rem;
   min-width: 0;
-  padding: 0.9rem;
+  padding: 1rem;
   align-content: start;
 }
 
@@ -314,7 +315,7 @@ small {
 
 .metric-card strong {
   color: var(--primary);
-  font-size: 1.55rem;
+  font-size: 1.75rem;
   line-height: 1;
 }
 
@@ -325,7 +326,17 @@ small {
 .interpretation-panel p {
   margin-bottom: 0;
   color: var(--muted);
-  font-size: 0.95rem;
+  font-size: 1rem;
+}
+
+.risk-note {
+  margin-top: 0.85rem;
+  border-left: 4px solid var(--accent);
+  background: #fff8ef;
+  padding: 0.75rem 0.85rem;
+  color: #6a4326;
+  font-size: 0.92rem;
+  font-weight: 650;
 }
 
 .chart-panel {
@@ -356,6 +367,12 @@ small {
   border-radius: 50%;
 }
 
+.chart-caption {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
 .strategy-key {
   background: var(--strategy);
 }
@@ -367,8 +384,8 @@ small {
 .chart-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3;
-  min-height: 280px;
+  aspect-ratio: 1 / 1;
+  min-height: 320px;
 }
 
 canvas {
@@ -463,9 +480,9 @@ canvas {
 
 .history-table {
   width: 100%;
-  table-layout: fixed;
+  min-width: 540px;
   border-collapse: collapse;
-  font-size: 0.76rem;
+  font-size: 0.9rem;
 }
 
 .history-table th,
@@ -480,7 +497,7 @@ canvas {
 .history-table th {
   background: #f7faf6;
   color: var(--muted);
-  font-size: 0.64rem;
+  font-size: 0.72rem;
   font-weight: 800;
   line-height: 1.15;
   text-transform: uppercase;
@@ -532,6 +549,25 @@ canvas {
 
 .debug-table tr:last-child td {
   border-bottom: 0;
+}
+
+@media (max-width: 420px) {
+  .app-header {
+    flex-wrap: wrap;
+  }
+
+  .status-pill {
+    margin-top: 0;
+  }
+
+  .section-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .legend {
+    justify-content: flex-start;
+  }
 }
 
 @media (min-width: 760px) {
